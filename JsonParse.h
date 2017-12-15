@@ -52,8 +52,21 @@ T JsonCast(JsonObject & o){
 	return boost::any_cast<T>(o);
 }
 
+JsonString _pre_process(JsonString v){
+	JsonString out = "";
+	for (auto c : v){
+		if (c == '\"'){
+			out += "\\\"";
+		}
+		else{
+			out += c;
+		}
+	}
+	return out;
+}
+
 std::string _pack(JsonString v){
-	return v;
+	return _pre_process(v);
 }
 
 std::string _pack(JsonInt v){
@@ -149,6 +162,18 @@ inline std::string packer(JsonObject & o){
 	return pack(o);
 }
 
+std::string after_process(std::string v){
+	std::string out = "";
+	for (auto c : v){
+		if (c == '\"')
+		{
+			continue;
+		}
+		out += c;
+	}
+	return out;
+}
+
 int unpack(JsonObject & out, JsonString s){
 	int begin = 0;
 	int len = s.length();
@@ -217,7 +242,7 @@ int unpack(JsonObject & out, JsonString s){
 				throw jsonformatexception("error json fromat: not a conform key");
 			}
 			for (; i < len; ){
-				if (c[++i] == '\"'){
+				if (c[i] != '\\' && c[++i] == '\"'){
 					end = i++;
 					break;
 				}
@@ -226,7 +251,7 @@ int unpack(JsonObject & out, JsonString s){
 				throw jsonformatexception("error json fromat: not a conform key");
 			}
 
-			key = std::string(&c[begin + 1], end - begin - 1);
+			key = after_process(std::string(&c[begin + 1], end - begin - 1));
 
 			while (1){
 				if (c[i] == ':' || c[i] == ' ' || c[i] == '\0'){
@@ -338,7 +363,7 @@ int unpack(JsonObject & out, JsonString s){
 				}
 			
 				if ((c[i] == ',') || (c[i] == '}')){
-					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, std::string(&c[vbegin], vend - vbegin)));
+					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, after_process(std::string(&c[vbegin], vend - vbegin))));
 				}
 
 				if (c[i] == '}') {
@@ -558,7 +583,7 @@ int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == ']')){
-					boost::any_cast<JsonArray>(obj)->push_back(std::string(&c[vbegin], vend - vbegin));
+					boost::any_cast<JsonArray>(obj)->push_back(after_process(std::string(&c[vbegin], vend - vbegin)));
 				}
 
 				if (c[i] == '}') {
