@@ -58,6 +58,9 @@ JsonString _pre_process(JsonString v){
 		if (c == '\"'){
 			out += "\\\"";
 		}
+		else if (c == '\\') {
+			out += "\\\\";
+		}
 		else{
 			out += c;
 		}
@@ -100,11 +103,17 @@ std::string pack(JsonArray & _array);
 
 std::string pack(JsonObject & v){
 	std::string _out = "";
-	if (v.type() == typeid(std::string)){
+	if (v.type() == typeid(std::string) || v.type() == typeid(const char *) || v.type() == typeid(char const*) || v.type() == typeid(char*)){
 		_out += "\"";
 	}
 
-	if (v.type() == typeid(std::string)){
+	if (v.type() == typeid(const char *)) {
+		_out += _pack(std::string(boost::any_cast<const char *>(v)));
+	} else if (v.type() == typeid(char const*)) {
+		_out += _pack(std::string(boost::any_cast<char const*>(v)));
+	} else if (v.type() == typeid(char*)) {
+		_out += _pack(std::string(boost::any_cast<char*>(v)));
+	} else if (v.type() == typeid(std::string)){
 		_out += _pack(boost::any_cast<JsonString>(v));
 	} else if (v.type() == typeid(bool)){
 		_out += _pack(boost::any_cast<JsonBool>(v));
@@ -114,19 +123,19 @@ std::string pack(JsonObject & v){
 		_out += _pack((JsonInt)boost::any_cast<std::int32_t>(v));
 	} else if (v.type() == typeid(std::uint64_t)){
 		_out += _pack((JsonInt)boost::any_cast<std::uint64_t>(v));
-	}else if (v.type() == typeid(std::uint32_t)){
+	} else if (v.type() == typeid(std::uint32_t)){
 		_out += _pack((JsonInt)boost::any_cast<std::uint32_t>(v));
 	} else if (v.type() == typeid(double)){
 		_out += _pack(boost::any_cast<JsonFloat>(v));
 	} else if (v.type() == typeid(std::nullptr_t)){
 		_out += _pack(nullptr);
-	} else if (v.type() == typeid(JsonTable)){
+	} else if (v.type() == typeid(JsonTable) || v.type() == typeid(std::shared_ptr<boost::unordered_map<std::string, boost::any> >)){
 		_out += pack(boost::any_cast<JsonTable>(v));
-	} else if (v.type() == typeid(JsonArray)){
+	} else if (v.type() == typeid(JsonArray) || v.type() == typeid(std::shared_ptr<std::vector<boost::any> >)){
 		_out += pack(boost::any_cast<JsonArray>(v));
 	}
 
-	if (v.type() == typeid(std::string)){
+	if (v.type() == typeid(std::string) || v.type() == typeid(const char *) || v.type() == typeid(char const*) || v.type() == typeid(char*)){
 		_out += "\"";
 	}
 	return _out;
@@ -138,7 +147,9 @@ std::string pack(JsonArray & _array){
 			_out += pack(o);
 		_out += ",";
 	}
-	_out.erase(_out.length() - 1);
+	if (_array->size() > 0) {
+		_out.erase(_out.length() - 1);
+	}
 	_out += "]";
 
 	return _out;
@@ -152,7 +163,9 @@ std::string pack(JsonTable & o){
 		_out += pack(_obj.second);
 		_out += ",";
 	}
-	_out.erase(_out.length() - 1);
+	if (o->size() > 0) {
+		_out.erase(_out.length() - 1);
+	}
 	_out += "}";
 
 	return _out;
@@ -165,7 +178,7 @@ inline std::string packer(JsonObject & o){
 std::string after_process(std::string v){
 	std::string out = "";
 	for (auto c : v){
-		if (c == '\"')
+		if (c == '\\')
 		{
 			continue;
 		}
@@ -227,12 +240,13 @@ int unpack(JsonObject & out, JsonString s){
 			while (1){
 				if (c[i] == '}') {
 					goto mapend;
-				} 
-				
+				}
+
 				begin = ++i;
-					
-				if (c[begin] == ' ' || c[begin] == '\0'){
+				if (c[begin] == ' ' || c[begin] == '\0' || c[begin] == '\t' || c[begin] == '\n'){
 					continue;
+				} else if (c[i] == '}') {
+					goto mapend;
 				} else{
 					break;
 				}
@@ -254,7 +268,7 @@ int unpack(JsonObject & out, JsonString s){
 			key = after_process(std::string(&c[begin + 1], end - begin - 1));
 
 			while (1){
-				if (c[i] == ':' || c[i] == ' ' || c[i] == '\0'){
+				if (c[i] == ':' || c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 					i++;
 				} else{
 					break;
@@ -287,12 +301,16 @@ int unpack(JsonObject & out, JsonString s){
 			pre.push_back(obj);
 		parselist:
 			while (1){
+				if (c[i] == ']') {
+					goto listend;
+				}
+
 				i++;
-				if (c[i] == ' ' || c[i] == '\0'){
+				if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 					continue;
 				} else if (c[i] == ']') {
 					goto listend;
-				} else{
+				} else {
 					break;
 				}
 			}
@@ -349,7 +367,7 @@ int unpack(JsonObject & out, JsonString s){
 					vend = i++;
 
 					while (1){
-						if (c[i] == ' ' || c[i] == '\0'){
+						if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 							i++;
 							continue;
 						} else{
@@ -363,7 +381,7 @@ int unpack(JsonObject & out, JsonString s){
 				}
 			
 				if ((c[i] == ',') || (c[i] == '}')){
-					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, after_process(std::string(&c[vbegin], vend - vbegin))));
+					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, after_process(std::string(&c[vbegin + 1], vend - vbegin - 1))));
 				}
 
 				if (c[i] == '}') {
@@ -381,13 +399,14 @@ int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'l'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
+				i++;
 
 				while (1){
-					if (c[i] == ' ' || c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						i++;
 						continue;
 					} else{
-						if (c[i] == ','){
+						if (c[i] == ',' || c[i] == '}'){
 							break;
 						} else{
 							throw jsonformatexception("error json fromat: can not be resolved value");
@@ -414,13 +433,14 @@ int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
+				i++;
 
 				while (1){
-					if (c[i] == ' ' || c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						i++;
 						continue;
 					} else{
-						if (c[i] == ','){
+						if (c[i] == ',' || c[i] == '}'){
 							break;
 						} else{
 							throw jsonformatexception("error json fromat: can not be resolved value");
@@ -450,13 +470,14 @@ int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
+				i++;
 
 				while (1){
-					if (c[i] == ' ' || c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						i++;
 						continue;
 					} else{
-						if (c[i] == ','){
+						if (c[i] == ',' || c[i] == '}'){
 							break;
 						} else{
 							throw jsonformatexception("error json fromat: can not be resolved value");
@@ -497,14 +518,14 @@ int unpack(JsonObject & out, JsonString s){
 						count++;
 					}
 
-					if (c[i] == ' ' && c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						vend = i;
 						while (1){
-							if (c[i] == ' ' && c[i] == '\0'){
+							if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 								i++;
 								continue;
 							} else{
-								if (c[i] == ','){
+								if (c[i] == ',' || c[i] == '}'){
 									break;
 								}
 
@@ -569,7 +590,7 @@ int unpack(JsonObject & out, JsonString s){
 					vend = i++;
 
 					while (1){
-						if (c[i] == ' ' || c[i] == '\0'){
+						if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 							i++;
 							continue;
 						} else{
@@ -583,7 +604,7 @@ int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == ']')){
-					boost::any_cast<JsonArray>(obj)->push_back(after_process(std::string(&c[vbegin], vend - vbegin)));
+					boost::any_cast<JsonArray>(obj)->push_back(after_process(std::string(&c[vbegin + 1], vend - vbegin - 1)));
 				}
 
 				if (c[i] == '}') {
@@ -601,13 +622,14 @@ int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'l'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
+				i++;
 
 				while (1){
-					if (c[i] == ' ' || c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						i++;
 						continue;
 					} else{
-						if (c[i] == ','){
+						if (c[i] == ',' || c[i] == ']'){
 							break;
 						} else{
 							throw jsonformatexception("error json fromat: can not be resolved value");
@@ -634,13 +656,14 @@ int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
+				i++;
 
 				while (1){
-					if (c[i] == ' ' || c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						i++;
 						continue;
 					} else{
-						if (c[i] == ','){
+						if (c[i] == ',' || c[i] == ']'){
 							break;
 						} else{
 							throw jsonformatexception("error json fromat: can not be resolved value");
@@ -670,13 +693,14 @@ int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
+				i++;
 
 				while (1){
-					if (c[i] == ' ' || c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						i++;
 						continue;
 					} else{
-						if (c[i] == ','){
+						if (c[i] == ',' || c[i] == ']'){
 							break;
 						} else{
 							throw jsonformatexception("error json fromat: can not be resolved value");
@@ -693,15 +717,17 @@ int unpack(JsonObject & out, JsonString s){
 				} else if (c[i] == ']'){
 					goto listend;
 				}
-			} else if ((c[i]) == '['){
+			} else if ((c[i]) == '[') {
+				auto _new = Make_JsonArray();
+				boost::any_cast<JsonArray>(obj)->push_back(_new);
 				pre.push_back(obj);
-				obj = Make_JsonArray();
-				boost::any_cast<JsonArray>(obj)->push_back(obj);
+				obj = _new;
 				goto parselist;
-			} else if ((c[i]) == '{'){
+			} else if ((c[i]) == '{') {
+				auto _new = Make_JsonTable();
+				boost::any_cast<JsonArray>(obj)->push_back(_new);
 				pre.push_back(obj);
-				obj = Make_JsonTable();
-				boost::any_cast<JsonArray>(obj)->push_back(obj);
+				obj = _new;
 				goto parsemap;
 			} else {
 				bool isint = true;
@@ -715,14 +741,14 @@ int unpack(JsonObject & out, JsonString s){
 						count++;
 					}
 
-					if (c[i] == ' ' && c[i] == '\0'){
+					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 						vend = i;
 						while (1){
-							if (c[i] == ' ' && c[i] == '\0'){
+							if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 								i++;
 								continue;
 							} else{
-								if (c[i] == ','){
+								if (c[i] == ',' || c[i] == ']'){
 									break;
 								}
 
