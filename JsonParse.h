@@ -90,7 +90,7 @@ std::string _pack(JsonBool v){
 	if (boost::any_cast<bool>(v)){
 		return "true";
 	}
-	return "flase";
+	return "false";
 }
 
 std::string _pack(JsonNull v){
