@@ -38,21 +38,21 @@ typedef std::int64_t JsonInt;
 typedef std::double_t JsonFloat;
 typedef boost::any JsonObject;
 typedef std::shared_ptr<boost::unordered_map<std::string, JsonObject> > JsonTable;
-JsonTable Make_JsonTable(){
+inline JsonTable Make_JsonTable(){
 	return std::make_shared<boost::unordered_map<std::string, JsonObject>>();
 }
 typedef std::shared_ptr<std::vector<JsonObject> > JsonArray;
-JsonArray Make_JsonArray(){
+inline JsonArray Make_JsonArray(){
 	return std::make_shared<std::vector<JsonObject> >();
 }
 static JsonNull JsonNull_t = nullptr;
 
 template <class T>
-T JsonCast(JsonObject & o){
+inline T JsonCast(JsonObject & o){
 	return boost::any_cast<T>(o);
 }
 
-JsonString _pre_process(JsonString v){
+inline JsonString _pre_process(JsonString v){
 	JsonString out = "";
 	for (auto c : v){
 		if (c == '\"'){
@@ -68,40 +68,40 @@ JsonString _pre_process(JsonString v){
 	return out;
 }
 
-std::string _pack(JsonString v){
+inline std::string _pack(JsonString v){
 	return _pre_process(v);
 }
 
-std::string _pack(JsonInt v){
+inline std::string _pack(JsonInt v){
 	std::stringstream ss;
 	ss << boost::any_cast<int64_t>(v);
 
 	return ss.str();
 }
 
-std::string _pack(JsonFloat v){
+inline std::string _pack(JsonFloat v){
 	std::stringstream ss;
 	ss << boost::any_cast<int64_t>(v);
 
 	return ss.str();
 }
 
-std::string _pack(JsonBool v){
+inline std::string _pack(JsonBool v){
 	if (boost::any_cast<bool>(v)){
 		return "true";
 	}
 	return "false";
 }
 
-std::string _pack(JsonNull v){
+inline std::string _pack(JsonNull v){
 	return "null";
 }
 
-std::string pack(JsonTable & o);
+inline std::string pack(JsonTable & o);
 
-std::string pack(JsonArray & _array);
+inline std::string pack(JsonArray & _array);
 
-std::string pack(JsonObject & v){
+inline std::string pack(JsonObject & v){
 	std::string _out = "";
 	if (v.type() == typeid(std::string) || v.type() == typeid(const char *) || v.type() == typeid(char const*) || v.type() == typeid(char*)){
 		_out += "\"";
@@ -141,7 +141,7 @@ std::string pack(JsonObject & v){
 	return _out;
 }
 
-std::string pack(JsonArray & _array){
+inline std::string pack(JsonArray & _array){
 	std::string _out = "[";
 	for (auto o : *_array){
 			_out += pack(o);
@@ -155,7 +155,7 @@ std::string pack(JsonArray & _array){
 	return _out;
 }
 
-std::string pack(JsonTable & o){
+inline std::string pack(JsonTable & o){
 	std::string _out = "{";
 	for(auto _obj : *o){
 		_out += "\"" + _pack(_obj.first) + "\"";
@@ -175,7 +175,7 @@ inline std::string packer(JsonObject & o){
 	return pack(o);
 }
 
-std::string after_process(std::string v){
+inline std::string after_process(std::string v){
 	std::string out = "";
 	for (auto c : v){
 		if (c == '\\')
@@ -187,7 +187,7 @@ std::string after_process(std::string v){
 	return out;
 }
 
-int unpack(JsonObject & out, JsonString s){
+inline int unpack(JsonObject & out, JsonString s){
 	int begin = 0;
 	int len = s.length();
 	while (s[begin] != '[' && s[begin] != '{'){
