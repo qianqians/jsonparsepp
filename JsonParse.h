@@ -235,49 +235,53 @@ inline int unpack(JsonObject & out, JsonString s){
 			obj = Make_JsonTable();
 			pre.push_back(obj);
 		parsemap:
-			int begin = -1, end = -1;
-			
-			while (1){
-				if (c[i] == '}') {
-					goto mapend;
+			{
+				int begin = -1, end = -1;
+
+				while (1) {
+					if (c[i] == '}') {
+						goto mapend;
+					}
+
+					begin = ++i;
+					if (c[begin] == ' ' || c[begin] == '\0' || c[begin] == '\t' || c[begin] == '\n') {
+						continue;
+					}
+					else if (c[i] == '}') {
+						goto mapend;
+					}
+					else {
+						break;
+					}
 				}
 
-				begin = ++i;
-				if (c[begin] == ' ' || c[begin] == '\0' || c[begin] == '\t' || c[begin] == '\n'){
-					continue;
-				} else if (c[i] == '}') {
-					goto mapend;
-				} else{
-					break;
+				if (c[begin] != '\"') {
+					throw jsonformatexception("error json fromat: not a conform key");
 				}
-			}
-
-			if (c[begin] != '\"'){
-				throw jsonformatexception("error json fromat: not a conform key");
-			}
-			for (; i < len; ){
-				if (c[i] != '\\' && c[++i] == '\"'){
-					end = i++;
-					break;
+				for (; i < len; ) {
+					if (c[i] != '\\' && c[++i] == '\"') {
+						end = i++;
+						break;
+					}
 				}
-			}
-			if (end == -1){
-				throw jsonformatexception("error json fromat: not a conform key");
-			}
-
-			key = after_process(std::string(&c[begin + 1], end - begin - 1));
-
-			while (1){
-				if (c[i] == ':' || c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-					i++;
-				} else{
-					break;
+				if (end == -1) {
+					throw jsonformatexception("error json fromat: not a conform key");
 				}
+
+				key = after_process(std::string(&c[begin + 1], end - begin - 1));
+
+				while (1) {
+					if (c[i] == ':' || c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n') {
+						i++;
+					}
+					else {
+						break;
+					}
+				}
+
+				type = 1;
+				goto parse;
 			}
-
-			type = 1;
-			goto parse;
-
 		mapend:
 			obj = pre.back();
 			pre.pop_back();
