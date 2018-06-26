@@ -26,8 +26,10 @@ namespace JsonParse{
 
 class jsonformatexception : public std::exception{
 public:
-	jsonformatexception(char * str) : std::exception(str){
+	jsonformatexception(char * str) : err(str){
 	}
+
+	std::string err;
 
 };
 
@@ -97,9 +99,11 @@ inline std::string _pack(JsonNull v){
 	return "null";
 }
 
-inline std::string pack(JsonTable & o);
+//inline std::string pack(JsonTable & o);
+inline std::string pack(std::shared_ptr<boost::unordered_map<std::string, boost::any> > o);
 
-inline std::string pack(JsonArray & _array);
+//inline std::string pack(JsonArray & _array);
+inline std::string pack(std::shared_ptr<std::vector<boost::any> > _array);
 
 inline std::string pack(JsonObject & v){
 	std::string _out = "";
@@ -141,7 +145,21 @@ inline std::string pack(JsonObject & v){
 	return _out;
 }
 
-inline std::string pack(JsonArray & _array){
+//inline std::string pack(JsonArray & _array){
+//	std::string _out = "[";
+//	for (auto o : *_array){
+//			_out += pack(o);
+//		_out += ",";
+//	}
+//	if (_array->size() > 0) {
+//		_out.erase(_out.length() - 1);
+//	}
+//	_out += "]";
+//
+//	return _out;
+//}
+
+inline std::string pack(std::shared_ptr<std::vector<boost::any> > _array){
 	std::string _out = "[";
 	for (auto o : *_array){
 			_out += pack(o);
@@ -155,7 +173,23 @@ inline std::string pack(JsonArray & _array){
 	return _out;
 }
 
-inline std::string pack(JsonTable & o){
+//inline std::string pack(JsonTable & o){
+//	std::string _out = "{";
+//	for(auto _obj : *o){
+//		_out += "\"" + _pack(_obj.first) + "\"";
+//		_out += ":";
+//		_out += pack(_obj.second);
+//		_out += ",";
+//	}
+//	if (o->size() > 0) {
+//		_out.erase(_out.length() - 1);
+//	}
+//	_out += "}";
+//
+//	return _out;
+//}
+
+inline std::string pack(std::shared_ptr<boost::unordered_map<std::string, boost::any> > o){
 	std::string _out = "{";
 	for(auto _obj : *o){
 		_out += "\"" + _pack(_obj.first) + "\"";
@@ -226,62 +260,61 @@ inline int unpack(JsonObject & out, JsonString s){
 	int type = 0;
 	JsonObject obj;
 	std::list<JsonObject> pre;
-	len = end - begin + 1; 
+	len = end - begin + 1;
 	int i = 0;
 	std::string key;
+
+	int key_begin = -1, key_end = -1;
 
 	for (; i < len; i++){
 		if (c[i] == '{'){
 			obj = Make_JsonTable();
 			pre.push_back(obj);
 		parsemap:
-			{
-				int begin = -1, end = -1;
+			key_begin = -1;
+			key_end = -1;
 
-				while (1) {
-					if (c[i] == '}') {
-						goto mapend;
-					}
-
-					begin = ++i;
-					if (c[begin] == ' ' || c[begin] == '\0' || c[begin] == '\t' || c[begin] == '\n') {
-						continue;
-					}
-					else if (c[i] == '}') {
-						goto mapend;
-					}
-					else {
-						break;
-					}
+			while (1){
+				if (c[i] == '}') {
+					goto mapend;
 				}
 
-				if (c[begin] != '\"') {
-					throw jsonformatexception("error json fromat: not a conform key");
+				key_begin = ++i;
+				if (c[key_begin] == ' ' || c[key_begin] == '\0' || c[key_begin] == '\t' || c[key_begin] == '\n'){
+					continue;
+				} else if (c[i] == '}') {
+					goto mapend;
+				} else{
+					break;
 				}
-				for (; i < len; ) {
-					if (c[i] != '\\' && c[++i] == '\"') {
-						end = i++;
-						break;
-					}
-				}
-				if (end == -1) {
-					throw jsonformatexception("error json fromat: not a conform key");
-				}
-
-				key = after_process(std::string(&c[begin + 1], end - begin - 1));
-
-				while (1) {
-					if (c[i] == ':' || c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n') {
-						i++;
-					}
-					else {
-						break;
-					}
-				}
-
-				type = 1;
-				goto parse;
 			}
+
+			if (c[key_begin] != '\"'){
+				throw jsonformatexception("error json fromat: not a conform key");
+			}
+			for (; i < len; ){
+				if (c[i] != '\\' && c[++i] == '\"'){
+					key_end = i++;
+					break;
+				}
+			}
+			if (key_end == -1){
+				throw jsonformatexception("error json fromat: not a conform key");
+			}
+
+			key = after_process(std::string(&c[key_begin + 1], key_end - key_begin - 1));
+
+			while (1){
+				if (c[i] == ':' || c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
+					i++;
+				} else{
+					break;
+				}
+			}
+
+			type = 1;
+			goto parse;
+
 		mapend:
 			obj = pre.back();
 			pre.pop_back();
@@ -331,7 +364,7 @@ inline int unpack(JsonObject & out, JsonString s){
 			if (pre.empty()){
 				break;
 			}
-			
+
 			i++;
 
 			if (obj.type() == typeid(JsonTable)){
@@ -383,7 +416,7 @@ inline int unpack(JsonObject & out, JsonString s){
 						}
 					}
 				}
-			
+
 				if ((c[i] == ',') || (c[i] == '}')){
 					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, after_process(std::string(&c[vbegin + 1], vend - vbegin - 1))));
 				}
@@ -392,7 +425,7 @@ inline int unpack(JsonObject & out, JsonString s){
 					goto mapend;
 				} else if (c[i] == ']'){
 					throw jsonformatexception("error json fromat: not a array");
-				} 
+				}
 			} else if ((c[i]) == 'n'){
 				if (c[++i] != 'u'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
@@ -543,7 +576,7 @@ inline int unpack(JsonObject & out, JsonString s){
 						break;
 					}
 				}
-			
+
 				std::stringstream ss;
 				ss << std::string(&c[vbegin], vend - vbegin);
 				if ((c[i] == ',') || (c[i] == '}')){
@@ -792,7 +825,7 @@ inline int unpack(JsonObject & out, JsonString s){
 
 		}
 	}
-	
+
 	out = obj;
 
 	return i;
