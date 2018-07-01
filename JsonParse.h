@@ -83,7 +83,7 @@ inline std::string _pack(JsonInt v){
 
 inline std::string _pack(JsonFloat v){
 	std::stringstream ss;
-	ss << boost::any_cast<int64_t>(v);
+	ss << boost::any_cast<double>(v);
 
 	return ss.str();
 }
