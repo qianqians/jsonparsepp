@@ -29,6 +29,9 @@ public:
 	jsonformatexception(char * str) : err(str){
 	}
 
+	jsonformatexception(std::string str) : err(str) {
+	}
+
 	std::string err;
 
 };
