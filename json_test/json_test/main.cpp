@@ -50,7 +50,7 @@ void main()
 		\"log_dir\" : \"./log/\"\
 	}}";
 
-	auto fs = std::ifstream("F:\\abelkhan_cpp_client_gate_build\\bin\\config.txt");
+	auto fs = std::ifstream("D://workspace//abelkhan//abelkhan_cpp//tools//jsonparsepp//json_test//json_test//test.txt");
 	std::stringstream buffer;
 	buffer << fs.rdbuf();
 	std::string buff(buffer.str());

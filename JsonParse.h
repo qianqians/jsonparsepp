@@ -386,9 +386,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				count = 1;
 				i++;
 
+				bool str_ = false;
 				for (; i < len; i++){
 					if (c[i] == '\\'){
 						i++;
+						continue;
 					}
 
 					if (c[i] == '\"'){
@@ -612,6 +614,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				for (; i < len; i++){
 					if (c[i] == '\\'){
 						i++;
+						continue;
 					}
 
 					if (c[i] == '\"'){
