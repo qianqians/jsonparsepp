@@ -31,7 +31,6 @@ public:
 
 	jsonformatexception(std::string str) : err(str) {
 	}
-
 	std::string err;
 
 };
@@ -386,7 +385,6 @@ inline int unpack(JsonObject & out, JsonString s){
 				count = 1;
 				i++;
 
-				bool str_ = false;
 				for (; i < len; i++){
 					if (c[i] == '\\'){
 						i++;
