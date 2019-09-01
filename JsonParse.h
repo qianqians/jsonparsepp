@@ -10,28 +10,19 @@
 #include <vector>
 #include <list>
 #include <string>
-#include <cstdint>
 #include <sstream>
-#include <stack>
 #include <memory>
 
 #include <boost/unordered_map.hpp>
 #include <boost/any.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 namespace Fossilizid{
 namespace JsonParse{
 
 class jsonformatexception : public std::exception{
 public:
-	jsonformatexception(char * str) : err(str){
+	jsonformatexception(char * str) : std::exception(str){
 	}
-
-	jsonformatexception(std::string str) : err(str) {
-	}
-	std::string err;
 
 };
 
@@ -43,7 +34,7 @@ typedef std::double_t JsonFloat;
 typedef boost::any JsonObject;
 typedef std::shared_ptr<boost::unordered_map<std::string, JsonObject> > JsonTable;
 inline JsonTable Make_JsonTable(){
-	return std::make_shared<boost::unordered_map<std::string, JsonObject>>();
+	return std::make_shared<boost::unordered_map<std::string, JsonObject> >();
 }
 typedef std::shared_ptr<std::vector<JsonObject> > JsonArray;
 inline JsonArray Make_JsonArray(){
@@ -85,7 +76,7 @@ inline std::string _pack(JsonInt v){
 
 inline std::string _pack(JsonFloat v){
 	std::stringstream ss;
-	ss << boost::any_cast<double>(v);
+	ss << boost::any_cast<int64_t>(v);
 
 	return ss.str();
 }
@@ -101,11 +92,9 @@ inline std::string _pack(JsonNull v){
 	return "null";
 }
 
-//inline std::string pack(JsonTable & o);
-inline std::string pack(std::shared_ptr<boost::unordered_map<std::string, boost::any> > o);
+inline std::string pack(JsonTable & o);
 
-//inline std::string pack(JsonArray & _array);
-inline std::string pack(std::shared_ptr<std::vector<boost::any> > _array);
+inline std::string pack(JsonArray & _array);
 
 inline std::string pack(JsonObject & v){
 	std::string _out = "";
@@ -147,21 +136,7 @@ inline std::string pack(JsonObject & v){
 	return _out;
 }
 
-//inline std::string pack(JsonArray & _array){
-//	std::string _out = "[";
-//	for (auto o : *_array){
-//			_out += pack(o);
-//		_out += ",";
-//	}
-//	if (_array->size() > 0) {
-//		_out.erase(_out.length() - 1);
-//	}
-//	_out += "]";
-//
-//	return _out;
-//}
-
-inline std::string pack(std::shared_ptr<std::vector<boost::any> > _array){
+inline std::string pack(JsonArray & _array){
 	std::string _out = "[";
 	for (auto o : *_array){
 			_out += pack(o);
@@ -175,23 +150,7 @@ inline std::string pack(std::shared_ptr<std::vector<boost::any> > _array){
 	return _out;
 }
 
-//inline std::string pack(JsonTable & o){
-//	std::string _out = "{";
-//	for(auto _obj : *o){
-//		_out += "\"" + _pack(_obj.first) + "\"";
-//		_out += ":";
-//		_out += pack(_obj.second);
-//		_out += ",";
-//	}
-//	if (o->size() > 0) {
-//		_out.erase(_out.length() - 1);
-//	}
-//	_out += "}";
-//
-//	return _out;
-//}
-
-inline std::string pack(std::shared_ptr<boost::unordered_map<std::string, boost::any> > o){
+inline std::string pack(JsonTable & o){
 	std::string _out = "{";
 	for(auto _obj : *o){
 		_out += "\"" + _pack(_obj.first) + "\"";
@@ -211,21 +170,9 @@ inline std::string packer(JsonObject & o){
 	return pack(o);
 }
 
-inline std::string after_process(std::string v){
-	std::string out = "";
-	for (auto c : v){
-		if (c == '\\')
-		{
-			continue;
-		}
-		out += c;
-	}
-	return out;
-}
-
 inline int unpack(JsonObject & out, JsonString s){
 	int begin = 0;
-	int len = s.length();
+	auto len = s.length();
 	while (s[begin] != '[' && s[begin] != '{'){
 		begin++;
 
@@ -234,81 +181,64 @@ inline int unpack(JsonObject & out, JsonString s){
 		}
 	}
 
-	std::list<char> next;
-	int end = 0;
-	for (int i = begin; i < len; i++){
-		if (s[i] == '['){
-			next.push_back(']');
-		}
-		if (s[i] == '{'){
-			next.push_back('}');
-		}
-
-		if (s[i] == next.back()){
-			next.pop_back();
-		}
-
-		if (next.size() == 0){
-			end = i;
-			break;
-		}
-	}
-
-	if (next.size() != 0){
-		throw jsonformatexception("error json format: can not be determined the end");
-	}
-
+	size_t end = len;
 	const char * c = s.c_str() + begin;
 	int type = 0;
 	JsonObject obj;
 	std::list<JsonObject> pre;
-	len = end - begin + 1;
+	JsonTable obj_table = nullptr;
+	JsonArray obj_array = nullptr;
+	len = end - begin + 1; 
 	int i = 0;
 	std::string key;
 
-	int key_begin = -1, key_end = -1;
-
-	for (; i < len; i++){
+	for (; i < len; ++i){
 		if (c[i] == '{'){
-			obj = Make_JsonTable();
+			obj = obj_table = Make_JsonTable();
 			pre.push_back(obj);
 		parsemap:
-			key_begin = -1;
-			key_end = -1;
+			int begin = -1, end = -1;
+			
+			if (c[i] == '}') {
+				goto mapend;
+			}
 
 			while (1){
-				if (c[i] == '}') {
-					goto mapend;
-				}
-
-				key_begin = ++i;
-				if (c[key_begin] == ' ' || c[key_begin] == '\0' || c[key_begin] == '\t' || c[key_begin] == '\n'){
+				begin = ++i;
+				if (c[begin] == ' ' || c[begin] == '\0' || c[begin] == '\t' || c[begin] == '\n'){
 					continue;
 				} else if (c[i] == '}') {
 					goto mapend;
 				} else{
+					++i;
 					break;
 				}
 			}
 
-			if (c[key_begin] != '\"'){
-				throw jsonformatexception("error json fromat: not a conform key");
-			}
-			for (; i < len; ){
-				if (c[i] != '\\' && c[++i] == '\"'){
-					key_end = i++;
-					break;
-				}
-			}
-			if (key_end == -1){
+			if (c[begin] != '\"'){
 				throw jsonformatexception("error json fromat: not a conform key");
 			}
 
-			key = after_process(std::string(&c[key_begin + 1], key_end - key_begin - 1));
+			key.clear();
+			for (; i < len; ++i) {
+				if (c[i] == '\\') {
+					++i;
+					continue;
+				}
+
+				if (c[i] == '\"') {
+					end = i++;
+					break;
+				}
+				key.push_back(c[i]);
+			}
+			if (end == -1){
+				throw jsonformatexception("error json fromat: not a conform key");
+			}
 
 			while (1){
 				if (c[i] == ':' || c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-					i++;
+					++i;
 				} else{
 					break;
 				}
@@ -325,26 +255,28 @@ inline int unpack(JsonObject & out, JsonString s){
 				break;
 			}
 
-			i++;
+			++i;
 
 			if (obj.type() == typeid(JsonTable)){
+				obj_table = boost::any_cast<JsonTable>(obj);
 				goto parsemap;
 			} else if (obj.type() == typeid(JsonArray)){
+				obj_array = boost::any_cast<JsonArray>(obj);
 				goto parselist;
 			} else{
 				continue;
 			}
 
 		} else if (c[i] == '['){
-			obj = Make_JsonArray();
+			obj = obj_array = Make_JsonArray();
 			pre.push_back(obj);
 		parselist:
-			while (1){
-				if (c[i] == ']') {
-					goto listend;
-				}
+			if (c[i] == ']') {
+				goto listend;
+			}
 
-				i++;
+			while (1){
+				++i;
 				if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
 					continue;
 				} else if (c[i] == ']') {
@@ -366,12 +298,14 @@ inline int unpack(JsonObject & out, JsonString s){
 			if (pre.empty()){
 				break;
 			}
-
-			i++;
+			
+			++i;
 
 			if (obj.type() == typeid(JsonTable)){
+				obj_table = boost::any_cast<JsonTable>(obj);
 				goto parsemap;
 			} else if (obj.type() == typeid(JsonArray)){
+				obj_array = boost::any_cast<JsonArray>(obj);
 				goto parselist;
 			} else{
 				continue;
@@ -383,17 +317,20 @@ inline int unpack(JsonObject & out, JsonString s){
 			int vbegin = i, vend = 0, count = 0;
 			if (c[vbegin] == '\"'){
 				count = 1;
-				i++;
+				++i;
 
-				for (; i < len; i++){
+				std::string v = "";
+				for (; i < len; ++i){
 					if (c[i] == '\\'){
-						i++;
+						++i;
 						continue;
 					}
 
 					if (c[i] == '\"'){
 						break;
 					}
+
+					v.push_back(c[i]);
 				}
 
 				if (c[i] != '\"'){
@@ -408,7 +345,7 @@ inline int unpack(JsonObject & out, JsonString s){
 
 					while (1){
 						if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-							i++;
+							++i;
 							continue;
 						} else{
 							if ((c[i] == ',') || (c[i] == '}')){
@@ -419,16 +356,16 @@ inline int unpack(JsonObject & out, JsonString s){
 						}
 					}
 				}
-
+			
 				if ((c[i] == ',') || (c[i] == '}')){
-					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, after_process(std::string(&c[vbegin + 1], vend - vbegin - 1))));
+					obj_table->insert(std::make_pair(key, v));
 				}
 
 				if (c[i] == '}') {
 					goto mapend;
 				} else if (c[i] == ']'){
 					throw jsonformatexception("error json fromat: not a array");
-				}
+				} 
 			} else if ((c[i]) == 'n'){
 				if (c[++i] != 'u'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
@@ -439,11 +376,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'l'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
-				i++;
+				++i;
 
 				while (1){
 					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-						i++;
+						++i;
 						continue;
 					} else{
 						if (c[i] == ',' || c[i] == '}'){
@@ -455,7 +392,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == '}')){
-					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, JsonNull_t));
+					obj_table->insert(std::make_pair(key, JsonNull_t));
 				}
 
 				if (c[i] == '}') {
@@ -473,11 +410,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
-				i++;
+				++i;
 
 				while (1){
 					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-						i++;
+						++i;
 						continue;
 					} else{
 						if (c[i] == ',' || c[i] == '}'){
@@ -489,7 +426,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == '}')){
-					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, true));
+					obj_table->insert(std::make_pair(key, true));
 				}
 
 				if (c[i] == '}') {
@@ -510,11 +447,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
-				i++;
+				++i;
 
 				while (1){
 					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-						i++;
+						++i;
 						continue;
 					} else{
 						if (c[i] == ',' || c[i] == '}'){
@@ -526,7 +463,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == '}')){
-					boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, false));
+					obj_table->insert(std::make_pair(key, false));
 				}
 
 				if (c[i] == '}') {
@@ -536,15 +473,15 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 			} else if ((c[i]) == '['){
 				auto _new = Make_JsonArray();
-				boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, _new));
+				obj_table->insert(std::make_pair(key, _new));
 				pre.push_back(obj);
-				obj = _new;
+				obj = obj_array = _new;
 				goto parselist;
 			} else if ((c[i]) == '{'){
 				auto _new = Make_JsonTable();
-				boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, _new));
+				obj_table->insert(std::make_pair(key, _new));
 				pre.push_back(obj);
-				obj = _new;
+				obj = obj_table = _new;
 				goto parsemap;
 			} else {
 				bool isint = true;
@@ -562,7 +499,7 @@ inline int unpack(JsonObject & out, JsonString s){
 						vend = i;
 						while (1){
 							if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-								i++;
+								++i;
 								continue;
 							} else{
 								if (c[i] == ',' || c[i] == '}'){
@@ -579,18 +516,13 @@ inline int unpack(JsonObject & out, JsonString s){
 						break;
 					}
 				}
-
-				std::stringstream ss;
-				ss << std::string(&c[vbegin], vend - vbegin);
+			
+				std::string str(&c[vbegin], vend - vbegin);
 				if ((c[i] == ',') || (c[i] == '}')){
 					if (isint){
-						int64_t v;
-						ss >> v;
-						boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, v));
+						obj_table->insert(std::make_pair(key, atoll(str.c_str())));
 					} else{
-						double v;
-						ss >> v;
-						boost::any_cast<JsonTable>(obj)->insert(std::make_pair(key, v));
+						obj_table->insert(std::make_pair(key, atof(str.c_str())));
 					}
 				}
 
@@ -607,17 +539,20 @@ inline int unpack(JsonObject & out, JsonString s){
 			int vbegin = i, vend = 0, count = 0;
 			if (c[vbegin] == '\"'){
 				count = 1;
-				i++;
+				++i;
 
-				for (; i < len; i++){
+				std::string v = "";
+				for (; i < len; ++i){
 					if (c[i] == '\\'){
-						i++;
+						++i;
 						continue;
 					}
 
 					if (c[i] == '\"'){
 						break;
 					}
+
+					v.push_back(c[i]);
 				}
 
 				if (c[i] != '\"'){
@@ -632,7 +567,7 @@ inline int unpack(JsonObject & out, JsonString s){
 
 					while (1){
 						if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-							i++;
+							++i;
 							continue;
 						} else{
 							if ((c[i] == ',') || (c[i] == ']')){
@@ -645,7 +580,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == ']')){
-					boost::any_cast<JsonArray>(obj)->push_back(after_process(std::string(&c[vbegin + 1], vend - vbegin - 1)));
+					obj_array->push_back(v);
 				}
 
 				if (c[i] == '}') {
@@ -663,11 +598,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'l'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
-				i++;
+				++i;
 
 				while (1){
 					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-						i++;
+						++i;
 						continue;
 					} else{
 						if (c[i] == ',' || c[i] == ']'){
@@ -679,7 +614,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == ']')){
-					boost::any_cast<JsonArray>(obj)->push_back(JsonNull_t);
+					obj_array->push_back(JsonNull_t);
 				}
 
 				if (c[i] == '}') {
@@ -697,11 +632,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
-				i++;
+				++i;
 
 				while (1){
 					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-						i++;
+						++i;
 						continue;
 					} else{
 						if (c[i] == ',' || c[i] == ']'){
@@ -713,14 +648,15 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == ']')){
-					boost::any_cast<JsonArray>(obj)->push_back(true);
+					obj_array->push_back(true);
 				}
 
-				if (c[i] == '}') {
-					throw jsonformatexception("error json fromat: not a dict");
-				} else if (c[i] == ']'){
+				if (c[i] == ']') {
 					goto listend;
 				}
+				else if (c[i] == '}') {
+					throw jsonformatexception("error json fromat: not a dict");
+				} 
 			} else if ((c[i]) == 'f'){
 				if (c[++i] != 'a'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
@@ -734,11 +670,11 @@ inline int unpack(JsonObject & out, JsonString s){
 				if (c[++i] != 'e'){
 					throw jsonformatexception("error json fromat: can not be resolved value");
 				}
-				i++;
+				++i;
 
 				while (1){
 					if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-						i++;
+						++i;
 						continue;
 					} else{
 						if (c[i] == ',' || c[i] == ']'){
@@ -750,7 +686,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 
 				if ((c[i] == ',') || (c[i] == ']')){
-					boost::any_cast<JsonArray>(obj)->push_back(false);
+					obj_array->push_back(false);
 				}
 
 				if (c[i] == '}') {
@@ -760,15 +696,15 @@ inline int unpack(JsonObject & out, JsonString s){
 				}
 			} else if ((c[i]) == '[') {
 				auto _new = Make_JsonArray();
-				boost::any_cast<JsonArray>(obj)->push_back(_new);
+				obj_array->push_back(_new);
 				pre.push_back(obj);
-				obj = _new;
+				obj = obj_array = _new;
 				goto parselist;
 			} else if ((c[i]) == '{') {
 				auto _new = Make_JsonTable();
-				boost::any_cast<JsonArray>(obj)->push_back(_new);
+				obj_array->push_back(_new);
 				pre.push_back(obj);
-				obj = _new;
+				obj = obj_table = _new;
 				goto parsemap;
 			} else {
 				bool isint = true;
@@ -786,7 +722,7 @@ inline int unpack(JsonObject & out, JsonString s){
 						vend = i;
 						while (1){
 							if (c[i] == ' ' || c[i] == '\0' || c[i] == '\t' || c[i] == '\n'){
-								i++;
+								++i;
 								continue;
 							} else{
 								if (c[i] == ',' || c[i] == ']'){
@@ -804,17 +740,12 @@ inline int unpack(JsonObject & out, JsonString s){
 					}
 				}
 
-				std::stringstream ss;
-				ss << std::string(&c[vbegin], vend - vbegin);
+				std::string str(&c[vbegin], vend - vbegin);
 				if ((c[i] == ',') || (c[i] == ']')){
 					if (isint){
-						int64_t v;
-						ss >> v;
-						boost::any_cast<JsonArray>(obj)->push_back(v);
+						obj_array->push_back(atoll(str.c_str()));
 					} else{
-						double v;
-						ss >> v;
-						boost::any_cast<JsonArray>(obj)->push_back(v);
+						obj_array->push_back(atof(str.c_str()));
 					}
 				}
 
@@ -829,7 +760,7 @@ inline int unpack(JsonObject & out, JsonString s){
 
 		}
 	}
-
+	
 	out = obj;
 
 	return i;

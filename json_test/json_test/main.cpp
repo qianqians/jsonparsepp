@@ -1,5 +1,7 @@
 #include <JsonParse.h>
 #include <fstream>
+#include <iostream>
+#include <time.h>
 
 void main()
 {
@@ -45,16 +47,17 @@ void main()
 	\"gm\":{\
 		\"gm_ip\":\"127.0.0.1\",\
 		\"gm_port\" : 2234,\
-		\"log_level\" : \"debug\",\
+		\"log_level\" : \"de\\\"bu\\\"g\",\
 		\"log_file\" : \"control.txt\",\
 		\"log_dir\" : \"./log/\"\
 	}}";
 
-	auto fs = std::ifstream("D://workspace//abelkhan//abelkhan_cpp//tools//jsonparsepp//json_test//json_test//test.txt");
-	std::stringstream buffer;
-	buffer << fs.rdbuf();
-	std::string buff(buffer.str());
+	clock_t begin = clock();
+	for (int i = 0; i < 1000000; ++i) {
+		boost::any o;
+		Fossilizid::JsonParse::unpacker(o, json_str);
+	}
+	std::cout << "time:" << clock() - begin << std::endl;
 
-	boost::any o;
-	Fossilizid::JsonParse::unpacker(o, buff);
+	return;
 }
