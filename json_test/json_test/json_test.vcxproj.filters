@@ -18,7 +18,7 @@
     <ClInclude Include="..\..\JsonParse.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\allocator .h">
+    <ClInclude Include="..\..\allocator.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

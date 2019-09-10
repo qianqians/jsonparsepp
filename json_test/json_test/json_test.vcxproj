@@ -124,7 +124,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\allocator .h" />
+    <ClInclude Include="..\..\allocator.h" />
     <ClInclude Include="..\..\JsonParse.h" />
   </ItemGroup>
   <ItemGroup>
