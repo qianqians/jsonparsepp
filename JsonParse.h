@@ -193,6 +193,7 @@ inline int unpack(JsonObject & out, JsonString s){
 	len = end - begin + 1; 
 	int i = 0;
 	std::string key;
+	std::string v;
 
 	for (; i < len; ++i){
 		if (c[i] == '{'){
@@ -224,8 +225,7 @@ inline int unpack(JsonObject & out, JsonString s){
 			key.clear();
 			for (; i < len; ++i) {
 				if (c[i] == '\\') {
-					++i;
-					key.push_back(c[i]);
+					key.push_back(c[++i]);
 					continue;
 				}
 
@@ -322,11 +322,10 @@ inline int unpack(JsonObject & out, JsonString s){
 				count = 1;
 				++i;
 
-				std::string v = "";
+				v.clear();
 				for (; i < len; ++i){
 					if (c[i] == '\\'){
-						++i;
-						v.push_back(c[i]);
+						v.push_back(c[++i]);
 						continue;
 					}
 
@@ -545,11 +544,10 @@ inline int unpack(JsonObject & out, JsonString s){
 				count = 1;
 				++i;
 
-				std::string v = "";
+				v.clear();
 				for (; i < len; ++i){
 					if (c[i] == '\\'){
-						++i;
-						v.push_back(c[i]);
+						v.push_back(c[++i]);
 						continue;
 					}
 
