@@ -73,12 +73,12 @@
     <LibraryPath>F:\abelkhan_cpp_client_gate_build\3rdparty\boost\stage\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\workspace\abelkhan\jsonparsepp;D:\workspace\abelkhan\abelkhan_cpp\3rdparty\boost;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\workspace\abelkhan\abelkhan_cpp_build\3rdparty\boost;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\jsonparsepp;E:\boost\include\boost-1_67;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>D:\workspace\abelkhan\abelkhan_cpp\3rdparty\boost;D:\workspace\abelkhan\jsonparsepp;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\workspace\abelkhan\abelkhan_cpp_build\3rdparty\boost;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\jsonparsepp;E:\boost\include\boost-1_67;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,6 +124,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\allocator .h" />
     <ClInclude Include="..\..\JsonParse.h" />
   </ItemGroup>
   <ItemGroup>

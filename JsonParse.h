@@ -16,6 +16,8 @@
 #include <boost/unordered_map.hpp>
 #include <boost/any.hpp>
 
+#include <allocator.h>
+
 namespace Fossilizid{
 namespace JsonParse{
 
@@ -32,13 +34,13 @@ typedef std::string JsonString;
 typedef std::int64_t JsonInt;
 typedef std::double_t JsonFloat;
 typedef boost::any JsonObject;
-typedef std::shared_ptr<boost::unordered_map<std::string, JsonObject> > JsonTable;
+typedef std::shared_ptr<boost::unordered_map<std::string, JsonObject, boost::hash<std::string>, std::equal_to<std::string>, allocator<std::pair<std::string, JsonObject> > > > JsonTable;
 inline JsonTable Make_JsonTable(){
-	return std::make_shared<boost::unordered_map<std::string, JsonObject> >();
+	return std::make_shared<boost::unordered_map<std::string, JsonObject, boost::hash<std::string>, std::equal_to<std::string>, allocator<std::pair<std::string, JsonObject> > > >();
 }
-typedef std::shared_ptr<std::vector<JsonObject> > JsonArray;
+typedef std::shared_ptr<std::vector<JsonObject, allocator<JsonObject> > > JsonArray;
 inline JsonArray Make_JsonArray(){
-	return std::make_shared<std::vector<JsonObject> >();
+	return std::make_shared<std::vector<JsonObject, allocator<JsonObject> > >();
 }
 static JsonNull JsonNull_t = nullptr;
 
@@ -223,6 +225,7 @@ inline int unpack(JsonObject & out, JsonString s){
 			for (; i < len; ++i) {
 				if (c[i] == '\\') {
 					++i;
+					key.push_back(c[i]);
 					continue;
 				}
 
@@ -323,6 +326,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				for (; i < len; ++i){
 					if (c[i] == '\\'){
 						++i;
+						v.push_back(c[i]);
 						continue;
 					}
 
@@ -545,6 +549,7 @@ inline int unpack(JsonObject & out, JsonString s){
 				for (; i < len; ++i){
 					if (c[i] == '\\'){
 						++i;
+						v.push_back(c[i]);
 						continue;
 					}
 
