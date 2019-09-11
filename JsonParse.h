@@ -12,8 +12,8 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <map>
 
-#include <boost/unordered_map.hpp>
 #include <boost/any.hpp>
 
 #include <allocator.h>
@@ -34,9 +34,9 @@ typedef std::string JsonString;
 typedef std::int64_t JsonInt;
 typedef std::double_t JsonFloat;
 typedef boost::any JsonObject;
-typedef std::shared_ptr<boost::unordered_map<std::string, JsonObject, boost::hash<std::string>, std::equal_to<std::string>, allocator<std::pair<std::string, JsonObject> > > > JsonTable;
+typedef std::shared_ptr<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > > JsonTable;
 inline JsonTable Make_JsonTable(){
-	return std::make_shared<boost::unordered_map<std::string, JsonObject, boost::hash<std::string>, std::equal_to<std::string>, allocator<std::pair<std::string, JsonObject> > > >();
+	return std::make_shared<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > >();
 }
 typedef std::shared_ptr<std::vector<JsonObject, allocator<JsonObject> > > JsonArray;
 inline JsonArray Make_JsonArray(){
@@ -119,7 +119,7 @@ inline void pack(JsonObject & v, std::string & _out){
 		_pack(boost::any_cast<JsonFloat>(v), _out);
 	} else if (v.type() == typeid(std::nullptr_t)){
 		_pack(nullptr, _out);
-	} else if (v.type() == typeid(JsonTable) || v.type() == typeid(std::shared_ptr<boost::unordered_map<std::string, boost::any> >)){
+	} else if (v.type() == typeid(JsonTable) || v.type() == typeid(std::shared_ptr<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > >)){
 		pack(boost::any_cast<JsonTable>(v), _out);
 	} else if (v.type() == typeid(JsonArray) || v.type() == typeid(std::shared_ptr<std::vector<boost::any> >)){
 		pack(boost::any_cast<JsonArray>(v), _out);
