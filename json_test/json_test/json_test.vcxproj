@@ -73,12 +73,12 @@
     <LibraryPath>F:\abelkhan_cpp_client_gate_build\3rdparty\boost\stage\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>E:\jsonparsepp;E:\boost\include\boost-1_67;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\boost\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\json11;E:\jsonparsepp;E:\boost\include\boost-1_67;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\json11\build\Debug;E:\boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>E:\jsonparsepp;E:\boost\include\boost-1_67;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\boost\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\json11;E:\jsonparsepp;E:\boost\include\boost-1_67;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\json11\build\Release;E:\boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -94,6 +94,9 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>json11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -121,6 +124,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <AdditionalDependencies>json11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

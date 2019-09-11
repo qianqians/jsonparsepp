@@ -49,127 +49,119 @@ inline T JsonCast(JsonObject & o){
 	return boost::any_cast<T>(o);
 }
 
-inline JsonString _pre_process(JsonString v){
-	JsonString out = "";
+inline void _pre_process(JsonString v, std::string & _out){
 	for (auto c : v){
 		if (c == '\"'){
-			out += "\\\"";
+			_out += "\\\"";
 		}
 		else if (c == '\\') {
-			out += "\\\\";
+			_out += "\\\\";
 		}
 		else{
-			out += c;
+			_out += c;
 		}
 	}
-	return out;
 }
 
-inline std::string _pack(JsonString v){
-	return _pre_process(v);
+inline void _pack(JsonString v, std::string & _out){
+	return _pre_process(v, _out);
 }
 
-inline std::string _pack(JsonInt v){
-	std::stringstream ss;
-	ss << boost::any_cast<int64_t>(v);
-
-	return ss.str();
+inline void _pack(JsonInt v, std::string & _out){
+	_out += std::to_string(v);
 }
 
-inline std::string _pack(JsonFloat v){
-	std::stringstream ss;
-	ss << boost::any_cast<int64_t>(v);
-
-	return ss.str();
+inline void _pack(JsonFloat v, std::string & _out){
+	_out += std::to_string(v);
 }
 
-inline std::string _pack(JsonBool v){
+inline void _pack(JsonBool v, std::string & _out){
 	if (boost::any_cast<bool>(v)){
-		return "true";
+		_out += "true";
 	}
-	return "false";
+	else {
+		_out += "false";
+	}
 }
 
-inline std::string _pack(JsonNull v){
-	return "null";
+inline void _pack(JsonNull v, std::string & _out){
+	_out += "null";
 }
 
-inline std::string pack(JsonTable & o);
+inline void pack(JsonTable & o, std::string & _out);
 
-inline std::string pack(JsonArray & _array);
+inline void pack(JsonArray & _array, std::string & _out);
 
-inline std::string pack(JsonObject & v){
-	std::string _out = "";
+inline void pack(JsonObject & v, std::string & _out){
 	if (v.type() == typeid(std::string) || v.type() == typeid(const char *) || v.type() == typeid(char const*) || v.type() == typeid(char*)){
 		_out += "\"";
 	}
 
 	if (v.type() == typeid(const char *)) {
-		_out += _pack(std::string(boost::any_cast<const char *>(v)));
+		_pack(std::string(boost::any_cast<const char *>(v)), _out);
 	} else if (v.type() == typeid(char const*)) {
-		_out += _pack(std::string(boost::any_cast<char const*>(v)));
+		_pack(std::string(boost::any_cast<char const*>(v)), _out);
 	} else if (v.type() == typeid(char*)) {
-		_out += _pack(std::string(boost::any_cast<char*>(v)));
+		_pack(std::string(boost::any_cast<char*>(v)), _out);
 	} else if (v.type() == typeid(std::string)){
-		_out += _pack(boost::any_cast<JsonString>(v));
+		_pack(boost::any_cast<JsonString>(v), _out);
 	} else if (v.type() == typeid(bool)){
-		_out += _pack(boost::any_cast<JsonBool>(v));
+		_pack(boost::any_cast<JsonBool>(v), _out);
 	} else if (v.type() == typeid(std::int64_t)){
-		_out += _pack((JsonInt)boost::any_cast<std::int64_t>(v));
+		_pack((JsonInt)boost::any_cast<std::int64_t>(v), _out);
 	} else if (v.type() == typeid(std::int32_t)){
-		_out += _pack((JsonInt)boost::any_cast<std::int32_t>(v));
+		_pack((JsonInt)boost::any_cast<std::int32_t>(v), _out);
 	} else if (v.type() == typeid(std::uint64_t)){
-		_out += _pack((JsonInt)boost::any_cast<std::uint64_t>(v));
+		_pack((JsonInt)boost::any_cast<std::uint64_t>(v), _out);
 	} else if (v.type() == typeid(std::uint32_t)){
-		_out += _pack((JsonInt)boost::any_cast<std::uint32_t>(v));
+		_pack((JsonInt)boost::any_cast<std::uint32_t>(v), _out);
 	} else if (v.type() == typeid(double)){
-		_out += _pack(boost::any_cast<JsonFloat>(v));
+		_pack(boost::any_cast<JsonFloat>(v), _out);
 	} else if (v.type() == typeid(std::nullptr_t)){
-		_out += _pack(nullptr);
+		_pack(nullptr, _out);
 	} else if (v.type() == typeid(JsonTable) || v.type() == typeid(std::shared_ptr<boost::unordered_map<std::string, boost::any> >)){
-		_out += pack(boost::any_cast<JsonTable>(v));
+		pack(boost::any_cast<JsonTable>(v), _out);
 	} else if (v.type() == typeid(JsonArray) || v.type() == typeid(std::shared_ptr<std::vector<boost::any> >)){
-		_out += pack(boost::any_cast<JsonArray>(v));
+		pack(boost::any_cast<JsonArray>(v), _out);
 	}
 
 	if (v.type() == typeid(std::string) || v.type() == typeid(const char *) || v.type() == typeid(char const*) || v.type() == typeid(char*)){
 		_out += "\"";
 	}
-	return _out;
 }
 
-inline std::string pack(JsonArray & _array){
-	std::string _out = "[";
+inline void pack(JsonArray & _array, std::string & _out){
+	_out += "[";
 	for (auto o : *_array){
-			_out += pack(o);
+			pack(o, _out);
 		_out += ",";
 	}
 	if (_array->size() > 0) {
 		_out.erase(_out.length() - 1);
 	}
 	_out += "]";
-
-	return _out;
 }
 
-inline std::string pack(JsonTable & o){
-	std::string _out = "{";
+inline void pack(JsonTable & o, std::string & _out){
+	_out += "{";
 	for(auto _obj : *o){
-		_out += "\"" + _pack(_obj.first) + "\"";
-		_out += ":";
-		_out += pack(_obj.second);
+		_out += "\"";
+		_pack(_obj.first, _out);
+		_out += "\":";
+		pack(_obj.second, _out);
 		_out += ",";
 	}
 	if (o->size() > 0) {
 		_out.erase(_out.length() - 1);
 	}
 	_out += "}";
-
-	return _out;
 }
 
 inline std::string packer(JsonObject & o){
-	return pack(o);
+	std::string _out;
+	pack(o, _out);
+
+	return _out;
 }
 
 inline int unpack(JsonObject & out, JsonString s){
