@@ -55,9 +55,9 @@ void main()
 
 	clock_t begin = clock();
 	for (int i = 0; i < 1000000; ++i) {
-		boost::any o;
+		std::any o;
 		Fossilizid::JsonParse::unpacker(o, json_str);
-		(*boost::any_cast<Fossilizid::JsonParse::JsonTable>(o))["v"] = i;
+		(*std::any_cast<Fossilizid::JsonParse::JsonTable>(o))["v"] = i;
 		json_str = Fossilizid::JsonParse::packer(o);
 	}
 	std::cout << "JsonParse time:" << clock() - begin << std::endl;

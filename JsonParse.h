@@ -13,8 +13,7 @@
 #include <sstream>
 #include <memory>
 #include <map>
-
-#include <boost/any.hpp>
+#include <any>
 
 #include <allocator.h>
 
@@ -33,10 +32,10 @@ typedef bool JsonBool;
 typedef std::string JsonString;
 typedef std::int64_t JsonInt;
 typedef std::double_t JsonFloat;
-typedef boost::any JsonObject;
-typedef std::shared_ptr<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > > JsonTable;
+typedef std::any JsonObject;
+typedef std::shared_ptr<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<const std::string, JsonObject> > > > JsonTable;
 inline JsonTable Make_JsonTable(){
-	return std::make_shared<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > >();
+	return std::make_shared<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<const std::string, JsonObject> > > >();
 }
 typedef std::shared_ptr<std::vector<JsonObject, allocator<JsonObject> > > JsonArray;
 inline JsonArray Make_JsonArray(){
@@ -76,7 +75,7 @@ inline void _pack(JsonFloat v, std::string & _out){
 }
 
 inline void _pack(JsonBool v, std::string & _out){
-	if (boost::any_cast<bool>(v)){
+	if (std::any_cast<bool>(v)){
 		_out += "true";
 	}
 	else {
@@ -98,31 +97,31 @@ inline void pack(JsonObject & v, std::string & _out){
 	}
 
 	if (v.type() == typeid(const char *)) {
-		_pack(std::string(boost::any_cast<const char *>(v)), _out);
+		_pack(std::string(std::any_cast<const char *>(v)), _out);
 	} else if (v.type() == typeid(char const*)) {
-		_pack(std::string(boost::any_cast<char const*>(v)), _out);
+		_pack(std::string(std::any_cast<char const*>(v)), _out);
 	} else if (v.type() == typeid(char*)) {
-		_pack(std::string(boost::any_cast<char*>(v)), _out);
+		_pack(std::string(std::any_cast<char*>(v)), _out);
 	} else if (v.type() == typeid(std::string)){
-		_pack(boost::any_cast<JsonString>(v), _out);
+		_pack(std::any_cast<JsonString>(v), _out);
 	} else if (v.type() == typeid(bool)){
-		_pack(boost::any_cast<JsonBool>(v), _out);
+		_pack(std::any_cast<JsonBool>(v), _out);
 	} else if (v.type() == typeid(std::int64_t)){
-		_pack((JsonInt)boost::any_cast<std::int64_t>(v), _out);
+		_pack((JsonInt)std::any_cast<std::int64_t>(v), _out);
 	} else if (v.type() == typeid(std::int32_t)){
-		_pack((JsonInt)boost::any_cast<std::int32_t>(v), _out);
+		_pack((JsonInt)std::any_cast<std::int32_t>(v), _out);
 	} else if (v.type() == typeid(std::uint64_t)){
-		_pack((JsonInt)boost::any_cast<std::uint64_t>(v), _out);
+		_pack((JsonInt)std::any_cast<std::uint64_t>(v), _out);
 	} else if (v.type() == typeid(std::uint32_t)){
-		_pack((JsonInt)boost::any_cast<std::uint32_t>(v), _out);
+		_pack((JsonInt)std::any_cast<std::uint32_t>(v), _out);
 	} else if (v.type() == typeid(double)){
-		_pack(boost::any_cast<JsonFloat>(v), _out);
+		_pack(std::any_cast<JsonFloat>(v), _out);
 	} else if (v.type() == typeid(std::nullptr_t)){
 		_pack(nullptr, _out);
 	} else if (v.type() == typeid(JsonTable) || v.type() == typeid(std::shared_ptr<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > >)){
-		pack(boost::any_cast<JsonTable>(v), _out);
-	} else if (v.type() == typeid(JsonArray) || v.type() == typeid(std::shared_ptr<std::vector<boost::any> >)){
-		pack(boost::any_cast<JsonArray>(v), _out);
+		pack(std::any_cast<JsonTable>(v), _out);
+	} else if (v.type() == typeid(JsonArray) || v.type() == typeid(std::shared_ptr<std::vector<std::any> >)){
+		pack(std::any_cast<JsonArray>(v), _out);
 	}
 
 	if (v.type() == typeid(std::string) || v.type() == typeid(const char *) || v.type() == typeid(char const*) || v.type() == typeid(char*)){
@@ -253,10 +252,10 @@ inline int unpack(JsonObject & out, JsonString s){
 			++i;
 
 			if (obj.type() == typeid(JsonTable)){
-				obj_table = boost::any_cast<JsonTable>(obj);
+				obj_table = std::any_cast<JsonTable>(obj);
 				goto parsemap;
 			} else if (obj.type() == typeid(JsonArray)){
-				obj_array = boost::any_cast<JsonArray>(obj);
+				obj_array = std::any_cast<JsonArray>(obj);
 				goto parselist;
 			} else{
 				continue;
@@ -297,10 +296,10 @@ inline int unpack(JsonObject & out, JsonString s){
 			++i;
 
 			if (obj.type() == typeid(JsonTable)){
-				obj_table = boost::any_cast<JsonTable>(obj);
+				obj_table = std::any_cast<JsonTable>(obj);
 				goto parsemap;
 			} else if (obj.type() == typeid(JsonArray)){
-				obj_array = boost::any_cast<JsonArray>(obj);
+				obj_array = std::any_cast<JsonArray>(obj);
 				goto parselist;
 			} else{
 				continue;
