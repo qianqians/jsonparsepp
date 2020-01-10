@@ -45,7 +45,7 @@ static JsonNull JsonNull_t = nullptr;
 
 template <class T>
 inline T JsonCast(JsonObject & o){
-	return boost::any_cast<T>(o);
+	return std::any_cast<T>(o);
 }
 
 inline void _pre_process(JsonString v, std::string & _out){
