@@ -70,8 +70,8 @@ public:
 		_c = _o._c;
 	}
 
-	template<class _Other>
-	constexpr allocator(const allocator<_Other>& _Other) noexcept
+	template<class Other>
+	constexpr allocator(const allocator<Other>& _Other) noexcept
 	{
 		_c = _Other._c;
 	}
@@ -82,7 +82,7 @@ public:
 		--_p;
 		chunk * _c_ = *(chunk**)_p;
 		--_c_->count;
-		if (_c_->count <= 0) {
+		if (_c_->count <= 0 && _c != _c_) {
 			free(_c_->mem);
 		}
 	}
@@ -97,7 +97,11 @@ public:
 			size_t _stmp = (_s + 4095) / 4096 * 4096;
 			chunk * _ctmp = create_chunk(_stmp);
 			mem = chunk_malloc(_ctmp, _s);
-			_c = (_c->size - _c->offset) > (_ctmp->size - _ctmp->offset) ? _c : _ctmp;
+			auto _c_ = (_c->size - _c->offset) > (_ctmp->size - _ctmp->offset) ? _c : _ctmp;
+			if (_c_ != _c && _c->count == 0) {
+				free(_c->mem);
+			}
+			_c = _c_;
 		}
 		else {
 			mem = chunk_malloc(_c, _s);
