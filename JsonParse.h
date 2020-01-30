@@ -116,6 +116,8 @@ inline void pack(JsonObject & v, std::string & _out){
 		_pack((JsonInt)std::any_cast<std::uint32_t>(v), _out);
 	} else if (v.type() == typeid(double)){
 		_pack(std::any_cast<JsonFloat>(v), _out);
+	}else if (v.type() == typeid(float)){
+		_pack((JsonFloat)std::any_cast<float>(v), _out);
 	} else if (v.type() == typeid(std::nullptr_t)){
 		_pack(nullptr, _out);
 	} else if (v.type() == typeid(JsonTable) || v.type() == typeid(std::shared_ptr<std::map<std::string, JsonObject, std::less<std::string>, allocator<std::pair<std::string, JsonObject> > > >)){
